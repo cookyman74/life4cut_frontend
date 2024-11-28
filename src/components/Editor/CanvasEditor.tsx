@@ -45,13 +45,15 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
         image.src = fileUrl;
 
         image.onload = () => {
-            // 캔버스 크기 설정
-            canvas.width = image.width;
-            canvas.height = image.height;
+            const aspectRatio = image.width / image.height;
+
+            // 반응형 크기 설정 (부모 컨테이너에 맞게 조정)
+            canvas.width = canvas.parentElement!.clientWidth;
+            canvas.height = canvas.width / aspectRatio;
 
             // 필터 적용
             ctx.filter = filter;
-            ctx.drawImage(image, 0, 0);
+            ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
             // 프레임 추가
             if (frame) {
@@ -65,7 +67,13 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
                 const stickerImg = new Image();
                 stickerImg.src = sticker.src;
                 stickerImg.onload = () => {
-                    ctx.drawImage(stickerImg, sticker.x, sticker.y, 50, 50); // 스티커 크기 50x50
+                    ctx.drawImage(
+                        stickerImg,
+                        sticker.x,
+                        sticker.y,
+                        50,
+                        50
+                    ); // 스티커 크기 50x50
                 };
             });
 
@@ -94,12 +102,15 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
                 x >= sticker.x &&
                 x <= sticker.x + 50 && // 스티커 크기
                 y >= sticker.y &&
-                y <= sticker.y + 50,
+                y <= sticker.y + 50
         );
 
         if (stickerIndex !== -1) {
             setDraggingItem({ type: 'sticker', index: stickerIndex });
-            setOffset({ x: x - stickers[stickerIndex].x, y: y - stickers[stickerIndex].y });
+            setOffset({
+                x: x - stickers[stickerIndex].x,
+                y: y - stickers[stickerIndex].y,
+            });
             return;
         }
 
@@ -109,7 +120,7 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
                 x >= text.x &&
                 x <= text.x + ctx.measureText(text.text).width &&
                 y >= text.y - 24 &&
-                y <= text.y, // 텍스트 높이
+                y <= text.y // 텍스트 높이
         );
 
         if (textIndex !== -1) {
@@ -154,10 +165,10 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
     };
 
     return (
-        <div className="w-full flex flex-col items-center">
+        <div className="w-full max-w-[800px] mx-auto">
             <canvas
                 ref={canvasRef}
-                className="border-2 border-dashed border-gray-500 rounded-lg shadow-lg bg-white"
+                className="border border-gray-300 rounded-md shadow-md w-full h-auto"
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}

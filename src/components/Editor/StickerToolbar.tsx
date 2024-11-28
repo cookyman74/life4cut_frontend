@@ -1,27 +1,27 @@
 import React from 'react';
 
+type Sticker = {
+    src: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+};
+
 interface StickerToolbarProps {
-    stickers: { src: string; x: number; y: number }[];
-    setStickers: React.Dispatch<
-        React.SetStateAction<{ src: string; x: number; y: number }[]>
-    >;
+    stickers: Sticker[];
+    setStickers: React.Dispatch<React.SetStateAction<Sticker[]>>;
 }
 
 const StickerToolbar: React.FC<StickerToolbarProps> = ({ stickers, setStickers }) => {
-    // 스티커 추가 함수
     const addSticker = (stickerSrc: string) => {
-        const img = new Image();
-        img.onload = () => {
-            // 스티커 추가
-            setStickers((prevStickers) => [
-                ...prevStickers,
-                { src: stickerSrc, x: 50, y: 50 }, // 기본 위치
-            ]);
-        };
-        img.onerror = () => {
-            console.error('Failed to load sticker:', stickerSrc);
-        };
-        img.src = stickerSrc;
+        const randomX = Math.random() * 200; // 임의의 위치
+        const randomY = Math.random() * 200; // 임의의 위치
+        const defaultSize = 50; // 기본 크기
+        setStickers([
+            ...stickers,
+            { src: stickerSrc, x: randomX, y: randomY, width: defaultSize, height: defaultSize },
+        ]);
     };
 
     return (

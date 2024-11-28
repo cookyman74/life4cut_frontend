@@ -4,15 +4,23 @@ interface CanvasEditorProps {
     fileUrl: string;
     filter: string;
     frame: string;
-    stickers: { src: string; x: number; y: number }[];
+    stickers: { src: string; x: number; y: number; width: number; height: number }[];
     setStickers: React.Dispatch<
-        React.SetStateAction<{ src: string; x: number; y: number }[]>
+        React.SetStateAction<{ src: string; x: number; y: number; width: number; height: number }[]>
     >;
     texts: { text: string; x: number; y: number }[];
     setTexts: React.Dispatch<
         React.SetStateAction<{ text: string; x: number; y: number }[]>
     >;
 }
+
+type Sticker = {
+    src: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+};
 
 const CanvasEditor: React.FC<CanvasEditorProps> = ({
                                                        fileUrl,
@@ -27,26 +35,9 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
     const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
     const [selectedStickerIndex, setSelectedStickerIndex] = useState<number | null>(null);
     const [dragging, setDragging] = useState(false);
+    const [resizing, setResizing] = useState(false);
     const [offset, setOffset] = useState({ x: 0, y: 0 });
-
-    // 화면 스크롤 잠금/해제
-    useEffect(() => {
-        if (selectedStickerIndex !== null) {
-            // 스크롤 잠금
-            document.body.style.overflow = 'hidden';
-            document.body.style.touchAction = 'none'; // 모바일에서 스크롤 방지
-        } else {
-            // 스크롤 해제
-            document.body.style.overflow = '';
-            document.body.style.touchAction = '';
-        }
-
-        return () => {
-            // 컴포넌트 언마운트 시 초기화
-            document.body.style.overflow = '';
-            document.body.style.touchAction = '';
-        };
-    }, [selectedStickerIndex]);
+    const [resizeHandle, setResizeHandle] = useState<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | null>(null);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -72,6 +63,21 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
         };
     }, [fileUrl, filter, frame, stickers, texts, selectedStickerIndex]);
 
+    // 화면 스크롤 제어
+    useEffect(() => {
+        if (selectedStickerIndex !== null) {
+            // 편집 모드 활성화 시 스크롤 비활성화
+            document.body.style.overflow = 'hidden';
+        } else {
+            // 편집 모드 비활성화 시 스크롤 복원
+            document.body.style.overflow = '';
+        }
+
+        return () => {
+            document.body.style.overflow = ''; // 컴포넌트 언마운트 시 복원
+        };
+    }, [selectedStickerIndex]);
+
     const renderCanvas = (
         ctx: CanvasRenderingContext2D,
         canvas: HTMLCanvasElement,
@@ -95,13 +101,28 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
             const stickerImg = new Image();
             stickerImg.src = sticker.src;
             stickerImg.onload = () => {
-                ctx.drawImage(stickerImg, sticker.x, sticker.y, 50, 50);
+                ctx.drawImage(stickerImg, sticker.x, sticker.y, sticker.width, sticker.height);
                 if (selectedStickerIndex === index) {
+                    // 스티커 선택 시 점선과 크기 조절 핸들 표시
                     ctx.strokeStyle = 'red';
                     ctx.lineWidth = 2;
                     ctx.setLineDash([4, 4]); // 점선
-                    ctx.strokeRect(sticker.x, sticker.y, 50, 50);
+                    ctx.strokeRect(sticker.x, sticker.y, sticker.width, sticker.height);
                     ctx.setLineDash([]);
+
+                    // 크기 조절 핸들
+                    const handleSize = 10;
+                    const handles = [
+                        { x: sticker.x, y: sticker.y }, // top-left
+                        { x: sticker.x + sticker.width, y: sticker.y }, // top-right
+                        { x: sticker.x, y: sticker.y + sticker.height }, // bottom-left
+                        { x: sticker.x + sticker.width, y: sticker.y + sticker.height }, // bottom-right
+                    ];
+
+                    ctx.fillStyle = 'blue';
+                    handles.forEach((handle) => {
+                        ctx.fillRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
+                    });
                 }
             };
         });
@@ -117,7 +138,7 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
     const handlePointerDown = (e: React.MouseEvent | React.TouchEvent) => {
         if (selectedStickerIndex === null) return;
 
-        e.preventDefault(); // 기본 동작 차단 (모바일 스크롤 방지)
+        e.preventDefault();
 
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -128,12 +149,34 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
 
         const sticker = stickers[selectedStickerIndex];
 
+        // 핸들 확인
+        const handleSize = 10;
+        const handles = [
+            { x: sticker.x, y: sticker.y, name: 'top-left' },
+            { x: sticker.x + sticker.width, y: sticker.y, name: 'top-right' },
+            { x: sticker.x, y: sticker.y + sticker.height, name: 'bottom-left' },
+            { x: sticker.x + sticker.width, y: sticker.y + sticker.height, name: 'bottom-right' },
+        ] as const;
+
+        for (const handle of handles) {
+            if (
+                x >= handle.x - handleSize / 2 &&
+                x <= handle.x + handleSize / 2 &&
+                y >= handle.y - handleSize / 2 &&
+                y <= handle.y + handleSize / 2
+            ) {
+                setResizing(true);
+                setResizeHandle(handle.name);
+                return;
+            }
+        }
+
         // 드래그 가능 여부 확인
         if (
             x >= sticker.x &&
-            x <= sticker.x + 50 &&
+            x <= sticker.x + sticker.width &&
             y >= sticker.y &&
-            y <= sticker.y + 50
+            y <= sticker.y + sticker.height
         ) {
             setDragging(true);
             setOffset({ x: x - sticker.x, y: y - sticker.y });
@@ -141,9 +184,9 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
     };
 
     const handlePointerMove = (e: React.MouseEvent | React.TouchEvent) => {
-        if (!dragging || selectedStickerIndex === null) return;
+        if (!dragging && !resizing) return;
 
-        e.preventDefault(); // 기본 동작 차단 (모바일 스크롤 방지)
+        e.preventDefault();
 
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -152,18 +195,51 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
         const x = isTouchEvent(e) ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
         const y = isTouchEvent(e) ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
 
-        const updatedStickers = [...stickers];
-        updatedStickers[selectedStickerIndex] = {
-            ...updatedStickers[selectedStickerIndex],
-            x: x - offset.x,
-            y: y - offset.y,
-        };
+        if (dragging && selectedStickerIndex !== null) {
+            const updatedStickers = [...stickers];
+            updatedStickers[selectedStickerIndex] = {
+                ...updatedStickers[selectedStickerIndex],
+                x: x - offset.x,
+                y: y - offset.y,
+            };
+            setStickers(updatedStickers);
+        }
 
-        setStickers(updatedStickers);
+        if (resizing && selectedStickerIndex !== null) {
+            const updatedStickers = [...stickers];
+            const sticker = updatedStickers[selectedStickerIndex];
+
+            switch (resizeHandle) {
+                case 'top-left':
+                    sticker.width += sticker.x - x;
+                    sticker.height += sticker.y - y;
+                    sticker.x = x;
+                    sticker.y = y;
+                    break;
+                case 'top-right':
+                    sticker.width = x - sticker.x;
+                    sticker.height += sticker.y - y;
+                    sticker.y = y;
+                    break;
+                case 'bottom-left':
+                    sticker.width += sticker.x - x;
+                    sticker.height = y - sticker.y;
+                    sticker.x = x;
+                    break;
+                case 'bottom-right':
+                    sticker.width = x - sticker.x;
+                    sticker.height = y - sticker.y;
+                    break;
+            }
+
+            setStickers(updatedStickers);
+        }
     };
 
     const handlePointerUp = () => {
         setDragging(false);
+        setResizing(false);
+        setResizeHandle(null);
     };
 
     const handleDoubleClick = (e: React.MouseEvent | React.TouchEvent) => {
@@ -177,9 +253,9 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
         const clickedStickerIndex = stickers.findIndex(
             (sticker) =>
                 x >= sticker.x &&
-                x <= sticker.x + 50 &&
+                x <= sticker.x + sticker.width &&
                 y >= sticker.y &&
-                y <= sticker.y + 50
+                y <= sticker.y + sticker.height
         );
 
         if (clickedStickerIndex !== -1) {

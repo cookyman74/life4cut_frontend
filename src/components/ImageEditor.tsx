@@ -5,6 +5,14 @@ import StickerToolbar from './Editor/StickerToolbar';
 import TextToolbar from './Editor/TextToolbar';
 import CanvasEditor from './Editor/CanvasEditor';
 
+type Sticker = {
+    src: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+};
+
 interface ImageEditorProps {
     fileUrl: string;
 }
@@ -12,7 +20,7 @@ interface ImageEditorProps {
 const ImageEditor: React.FC<ImageEditorProps> = ({ fileUrl }) => {
     const [filter, setFilter] = useState<string>(''); // 필터 상태
     const [frame, setFrame] = useState<string>(''); // 프레임 상태
-    const [stickers, setStickers] = useState<{ src: string; x: number; y: number }[]>([]); // 스티커 상태
+    const [stickers, setStickers] = useState<Sticker[]>([]); // 스티커 상태
     const [texts, setTexts] = useState<{ text: string; x: number; y: number }[]>([]); // 텍스트 상태
     const [activeTab, setActiveTab] = useState<'filter' | 'frame' | 'sticker' | 'text'>('filter'); // 활성 탭 상태
 

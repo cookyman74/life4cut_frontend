@@ -24,21 +24,27 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
                                                        setTexts,
                                                    }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const ctxRef = useRef<CanvasRenderingContext2D | null>(null); // 캔버스 컨텍스트 관리
-    const [selectedStickerIndex, setSelectedStickerIndex] = useState<number | null>(null); // 선택된 스티커
+    const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
+    const [selectedStickerIndex, setSelectedStickerIndex] = useState<number | null>(null);
     const [dragging, setDragging] = useState(false);
     const [offset, setOffset] = useState({ x: 0, y: 0 });
 
-    // 스크롤 잠금/해제 관리
+    // 화면 스크롤 잠금/해제
     useEffect(() => {
         if (selectedStickerIndex !== null) {
-            document.body.style.overflow = 'hidden'; // 스크롤 잠금
+            // 스크롤 잠금
+            document.body.style.overflow = 'hidden';
+            document.body.style.touchAction = 'none'; // 모바일에서 스크롤 방지
         } else {
-            document.body.style.overflow = ''; // 스크롤 해제
+            // 스크롤 해제
+            document.body.style.overflow = '';
+            document.body.style.touchAction = '';
         }
 
         return () => {
-            document.body.style.overflow = ''; // 컴포넌트 언마운트 시 스크롤 해제
+            // 컴포넌트 언마운트 시 초기화
+            document.body.style.overflow = '';
+            document.body.style.touchAction = '';
         };
     }, [selectedStickerIndex]);
 
@@ -49,7 +55,7 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        ctxRef.current = ctx; // 컨텍스트 저장
+        ctxRef.current = ctx;
 
         const image = new Image();
         image.src = fileUrl;
@@ -61,7 +67,7 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
             canvas.width = canvas.parentElement!.clientWidth;
             canvas.height = canvas.width / aspectRatio;
 
-            // 캔버스 초기화 및 렌더링
+            // 캔버스 렌더링
             renderCanvas(ctx, canvas, image);
         };
     }, [fileUrl, filter, frame, stickers, texts, selectedStickerIndex]);
@@ -71,7 +77,6 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
         canvas: HTMLCanvasElement,
         image: HTMLImageElement
     ) => {
-        // 캔버스 초기화
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         // 필터 적용
@@ -91,14 +96,12 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
             stickerImg.src = sticker.src;
             stickerImg.onload = () => {
                 ctx.drawImage(stickerImg, sticker.x, sticker.y, 50, 50);
-
-                // 선택된 스티커 강조
                 if (selectedStickerIndex === index) {
-                    ctx.strokeStyle = 'red'; // 강조 색상
+                    ctx.strokeStyle = 'red';
                     ctx.lineWidth = 2;
                     ctx.setLineDash([4, 4]); // 점선
                     ctx.strokeRect(sticker.x, sticker.y, 50, 50);
-                    ctx.setLineDash([]); // 점선 초기화
+                    ctx.setLineDash([]);
                 }
             };
         });
@@ -112,7 +115,9 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
     };
 
     const handlePointerDown = (e: React.MouseEvent | React.TouchEvent) => {
-        if (selectedStickerIndex === null) return; // 선택된 스티커가 없으면 이동 불가
+        if (selectedStickerIndex === null) return;
+
+        e.preventDefault(); // 기본 동작 차단 (모바일 스크롤 방지)
 
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -123,7 +128,7 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
 
         const sticker = stickers[selectedStickerIndex];
 
-        // 드래그 가능한지 확인
+        // 드래그 가능 여부 확인
         if (
             x >= sticker.x &&
             x <= sticker.x + 50 &&
@@ -137,6 +142,8 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
 
     const handlePointerMove = (e: React.MouseEvent | React.TouchEvent) => {
         if (!dragging || selectedStickerIndex === null) return;
+
+        e.preventDefault(); // 기본 동작 차단 (모바일 스크롤 방지)
 
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -177,15 +184,12 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({
 
         if (clickedStickerIndex !== -1) {
             if (selectedStickerIndex === clickedStickerIndex) {
-                // 이미 선택된 상태라면 선택 해제
-                setSelectedStickerIndex(null);
+                setSelectedStickerIndex(null); // 선택 해제
             } else {
-                // 새로운 스티커 선택
-                setSelectedStickerIndex(clickedStickerIndex);
+                setSelectedStickerIndex(clickedStickerIndex); // 스티커 선택
             }
         } else {
-            // 스티커가 아닌 영역을 더블 클릭하면 선택 해제
-            setSelectedStickerIndex(null);
+            setSelectedStickerIndex(null); // 다른 영역 클릭 시 선택 해제
         }
     };
 

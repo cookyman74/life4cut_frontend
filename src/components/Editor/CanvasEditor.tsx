@@ -107,28 +107,15 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = ({
         handleStickerInteraction(x, y);
     };
 
-    // const handleMove = (x: number, y: number) => {
-    //     if (mode === 'text' && selectedTextIndex !== null) {
-    //         updateTextPosition(x, y);
-    //     } else if (mode === 'sticker' && selectedStickerIndex !== null) {
-    //         updateStickerPosition(x, y);
-    //     }
-    // };
-    //
-    // const handleReset = () => {
-    //     if (mode === 'text') {
-    //         resetTextInteraction();
-    //     } else if (mode === 'sticker') {
-    //         resetStickerInteraction();
-    //     }
-    // };
-
     // 모드 전환을 위한 버튼 추가 (디버깅용)
     return (
-        <div className="relative w-full max-w-[800px] mx-auto">
+        <div className="relative w-full max-w-[800px] mx-auto"
+             style={{ touchAction: 'auto' }} // 터치 동작 제어
+        >
             <canvas
                 ref={canvasRef}
                 className="border border-gray-300 rounded-md shadow-md w-full h-auto"
+                style={{touchAction: 'none'}}
                 onMouseDown={(e) => handlePointerEvent(e, handleInteraction)}
                 onMouseMove={(e) => handlePointerEvent(e, mode === 'sticker' ? updateStickerPosition : updateTextPosition)}
                 onMouseUp={mode === 'sticker' ? resetStickerInteraction : resetTextInteraction}

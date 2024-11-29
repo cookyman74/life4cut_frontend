@@ -84,6 +84,7 @@ export const useCanvas = ({
     };
 
     const renderStickerSelection = (ctx: CanvasRenderingContext2D, sticker: Sticker) => {
+        // Draw selection border
         ctx.strokeStyle = 'red';
         ctx.lineWidth = 2;
         ctx.setLineDash([4, 4]);
@@ -91,34 +92,60 @@ export const useCanvas = ({
         ctx.setLineDash([]);
 
         const handleSize = 10;
-        const handles = [
-            { x: sticker.x, y: sticker.y },
-            { x: sticker.x + sticker.width, y: sticker.y },
-            { x: sticker.x, y: sticker.y + sticker.height },
-            { x: sticker.x + sticker.width, y: sticker.y + sticker.height },
-        ];
 
+        // Draw delete button (top-left)
+        ctx.fillStyle = 'red';
+        ctx.fillRect(sticker.x - handleSize / 2, sticker.y - handleSize / 2, handleSize, handleSize);
+
+        // Draw resize handle (bottom-right)
         ctx.fillStyle = 'blue';
-        handles.forEach((handle) => {
-            ctx.fillRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
-        });
+        ctx.fillRect(
+            sticker.x + sticker.width - handleSize / 2,
+            sticker.y + sticker.height - handleSize / 2,
+            handleSize,
+            handleSize
+        );
     };
 
     const renderTexts = (ctx: CanvasRenderingContext2D) => {
         ctx.font = '24px Arial';
+        ctx.textBaseline = 'top'; // 텍스트 상단 정렬
 
         texts.forEach((textItem, index) => {
-            // 선택된 텍스트인 경우 하이라이트 표시
+            const textWidth = ctx.measureText(textItem.text).width;
+            const textHeight = 24;
+
+            // 선택된 텍스트 렌더링
             if (index === selectedTextIndex) {
-                const textWidth = ctx.measureText(textItem.text).width;
-                ctx.fillStyle = 'rgba(0, 0, 255, 0.1)';
-                ctx.fillRect(textItem.x, textItem.y - 24, textWidth, 24);
+                // 점선 테두리
+                ctx.strokeStyle = 'red';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([4, 4]);
+                ctx.strokeRect(
+                    textItem.x,
+                    textItem.y - textHeight,
+                    textWidth,
+                    textHeight
+                );
+                ctx.setLineDash([]);
+
+                // 삭제 버튼
+                const handleSize = 10;
+                ctx.fillStyle = 'red';
+                ctx.fillRect(
+                    textItem.x - handleSize + 5,
+                    textItem.y - textHeight - handleSize + 5,
+                    handleSize,
+                    handleSize
+                );
             }
 
+            // 텍스트 렌더링
             ctx.fillStyle = 'black';
-            ctx.fillText(textItem.text, textItem.x, textItem.y);
+            ctx.fillText(textItem.text, textItem.x, textItem.y - textHeight);
         });
     };
+
 
     return { canvasRef, ctxRef };
 };

@@ -26,4 +26,6 @@ export interface CanvasEditorProps {
     setTexts: React.Dispatch<React.SetStateAction<TextItem[]>>;
 }
 
+export type InteractionMode = 'sticker' | 'text' | null;
+
 export type ResizeHandle = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | null;

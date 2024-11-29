@@ -8,6 +8,7 @@ interface UseCanvasProps {
     stickers: Sticker[];
     texts: TextItem[];
     selectedStickerIndex: number | null;
+    selectedTextIndex: number | null;
 }
 
 export const useCanvas = ({
@@ -17,6 +18,7 @@ export const useCanvas = ({
                               stickers,
                               texts,
                               selectedStickerIndex,
+                              selectedTextIndex
                           }: UseCanvasProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
@@ -104,8 +106,16 @@ export const useCanvas = ({
 
     const renderTexts = (ctx: CanvasRenderingContext2D) => {
         ctx.font = '24px Arial';
-        ctx.fillStyle = 'black';
-        texts.forEach((textItem) => {
+
+        texts.forEach((textItem, index) => {
+            // 선택된 텍스트인 경우 하이라이트 표시
+            if (index === selectedTextIndex) {
+                const textWidth = ctx.measureText(textItem.text).width;
+                ctx.fillStyle = 'rgba(0, 0, 255, 0.1)';
+                ctx.fillRect(textItem.x, textItem.y - 24, textWidth, 24);
+            }
+
+            ctx.fillStyle = 'black';
             ctx.fillText(textItem.text, textItem.x, textItem.y);
         });
     };

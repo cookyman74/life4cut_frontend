@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Position, ResizeHandle, Sticker } from '../types';
+import { Position, ResizeHandle, Sticker, InteractionMode } from '../types';
 
 interface UseStickerInteractionProps {
     stickers: Sticker[];
     setStickers: React.Dispatch<React.SetStateAction<Sticker[]>>;
+    mode: InteractionMode;
 }
 
-export const useStickerInteraction = ({ stickers, setStickers }: UseStickerInteractionProps) => {
+export const useStickerInteraction = ({ stickers, setStickers, mode }: UseStickerInteractionProps) => {
     const [selectedStickerIndex, setSelectedStickerIndex] = useState<number | null>(null);
     const [dragging, setDragging] = useState(false);
     const [resizing, setResizing] = useState(false);
@@ -14,28 +15,21 @@ export const useStickerInteraction = ({ stickers, setStickers }: UseStickerInter
     const [resizeHandle, setResizeHandle] = useState<ResizeHandle>(null);
 
     const handleStickerInteraction = (x: number, y: number) => {
-        // 클릭된 위치에 스티커가 있는지 확인
-        const clickedStickerIndex = stickers.findIndex(
-            sticker =>
-                x >= sticker.x &&
-                x <= sticker.x + sticker.width &&
-                y >= sticker.y &&
-                y <= sticker.y + sticker.height
-        );
+        if (mode !== 'sticker') return;
 
-        // 클릭된 스티커가 있고, 이미 선택된 스티커가 있는 경우
+        // 현재 선택된 스티커가 있는 경우, 먼저 리사이즈 핸들 체크
         if (selectedStickerIndex !== null) {
             const sticker = stickers[selectedStickerIndex];
             const handleSize = 10;
 
-            // 핸들 검사
-            const handles: Array<{ x: number; y: number; name: ResizeHandle }> = [
-                { x: sticker.x, y: sticker.y, name: 'top-left' },
-                { x: sticker.x + sticker.width, y: sticker.y, name: 'top-right' },
-                { x: sticker.x, y: sticker.y + sticker.height, name: 'bottom-left' },
-                { x: sticker.x + sticker.width, y: sticker.y + sticker.height, name: 'bottom-right' }
+            const handles = [
+                { x: sticker.x, y: sticker.y, name: 'top-left' as const },
+                { x: sticker.x + sticker.width, y: sticker.y, name: 'top-right' as const },
+                { x: sticker.x, y: sticker.y + sticker.height, name: 'bottom-left' as const },
+                { x: sticker.x + sticker.width, y: sticker.y + sticker.height, name: 'bottom-right' as const }
             ];
 
+            // 리사이즈 핸들 체크
             for (const handle of handles) {
                 if (
                     x >= handle.x - handleSize / 2 &&
@@ -48,24 +42,28 @@ export const useStickerInteraction = ({ stickers, setStickers }: UseStickerInter
                     return;
                 }
             }
+        }
 
-            // 드래그 검사
-            if (
+        // 스티커 클릭 체크
+        const clickedStickerIndex = stickers.findIndex(
+            sticker =>
                 x >= sticker.x &&
                 x <= sticker.x + sticker.width &&
                 y >= sticker.y &&
                 y <= sticker.y + sticker.height
-            ) {
-                setDragging(true);
-                setOffset({ x: x - sticker.x, y: y - sticker.y });
-                return;
-            }
-        }
+        );
 
-        // 새로운 스티커 선택 또는 선택 해제
         if (clickedStickerIndex !== -1) {
-            setSelectedStickerIndex(clickedStickerIndex);
+            if (selectedStickerIndex === clickedStickerIndex) {
+                // 이미 선택된 스티커를 다시 클릭한 경우 드래그 시작
+                setDragging(true);
+                setOffset({ x: x - stickers[clickedStickerIndex].x, y: y - stickers[clickedStickerIndex].y });
+            } else {
+                // 새로운 스티커 선택
+                setSelectedStickerIndex(clickedStickerIndex);
+            }
         } else {
+            // 빈 영역 클릭
             setSelectedStickerIndex(null);
         }
     };

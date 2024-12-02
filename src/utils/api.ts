@@ -1,7 +1,13 @@
 import axios from 'axios';
 
+const baseURL = process.env.REACT_APP_BASE_URL;
+
+if (process.env.NODE_ENV === 'development') {
+  const baseURL = process.env.REACT_APP_DEV_URL;
+}
+
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000', // 백엔드 URL
+  baseURL: baseURL || 'http://localhost:3000', // 백엔드 URL
   timeout: 10000,
 });
 

@@ -1,13 +1,9 @@
 import axios from 'axios';
 
-const baseURL = process.env.REACT_APP_BASE_URL;
-
-if (process.env.NODE_ENV === 'development') {
-  const baseURL = process.env.REACT_APP_DEV_URL;
-}
-
 const api = axios.create({
-  baseURL: baseURL || 'http://localhost:3000', // 백엔드 URL
+  baseURL: process.env.NODE_ENV === 'development'
+      ? process.env.REACT_APP_DEV_URL
+      : process.env.REACT_APP_PROD_URL || 'http://localhost:3000', // 기본값 설정
   timeout: 10000,
 });
 
